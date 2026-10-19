@@ -19,6 +19,12 @@ export function hasPasswordRecoveryToken(location?: Pick<Location, 'pathname' | 
   return /reset-password|type=recovery|access_token=|token_hash=|code=/.test(raw)
 }
 
+function describeAuthError(error: { message?: string; code?: string; status?: number } | null): string {
+  if (!error) return 'Erro desconhecido de autenticação.'
+  const details = [error.message, error.code, error.status ? `HTTP ${error.status}` : ''].filter(Boolean)
+  return details.length ? details.join(' · ') : 'Erro desconhecido de autenticação.'
+}
+
 export function AuthScreen({ missingProfile = false, resetMode = false }: { missingProfile?: boolean; resetMode?: boolean }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -42,7 +48,7 @@ export function AuthScreen({ missingProfile = false, resetMode = false }: { miss
     setBusy(true); setError(''); setSuccess('')
     const { error: authError } = await supabase.auth.signInWithPassword({ email: normalizeResetEmail(email), password })
     setBusy(false)
-    if (authError) setError('Não foi possível entrar. Verifique o e-mail e a senha.')
+    if (authError) setError(`Não foi possível entrar: ${describeAuthError(authError)}`)
   }
 
   const requestPasswordReset = async () => {
@@ -65,7 +71,7 @@ export function AuthScreen({ missingProfile = false, resetMode = false }: { miss
     setResetBusy(false)
 
     if (error) {
-      setError('Não foi possível enviar o link. Verifique se o e-mail está cadastrado.')
+      setError(`Não foi possível enviar o link: ${describeAuthError(error)}`)
       return
     }
 
@@ -89,7 +95,7 @@ export function AuthScreen({ missingProfile = false, resetMode = false }: { miss
     setBusy(false)
 
     if (updateError) {
-      setError('Não foi possível alterar a senha. Solicite um novo link de recuperação.')
+      setError(`Não foi possível alterar a senha: ${describeAuthError(updateError)}`)
       return
     }
 
